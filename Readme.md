@@ -1,7 +1,8 @@
 # Content
 1. [Introduction](#introduction)
 2. [String or Numbers](#string-or-numbers   )
-
+3. [Sets](#sets)
+4. [Blocking Queue](#blocking-queue)
 
 ---
 
@@ -135,7 +136,7 @@ Think of them as `"key" → "value"` pairs, just like a dictionary in Python or 
 > in redis number are stores as a string as well
 
 
-<a href="https://redis.io/docs/latest/commands/?group=string" target="_blank">Visit the official docs of redis to understand the all of the commands related to String<a/>
+<a href="https://redis.io/docs/latest/commands/?group=string" target="_blank">Visit the official docs of redis to understand all of the available commands related to String<a/>
 
 ### Common String Commands
 
@@ -165,6 +166,9 @@ EXISTS user:1
 ```bash
 SET otp "123456"
 EXPIRE otp 60   # Key will be deleted after 60 seconds
+```
+```bash
+SET otp "123456" EX 60  # Key will be deleted after 60 seconds
 ```
 #### 6. Append
 ```bash
@@ -254,6 +258,249 @@ If the offset is bigger than the string size, Redis pads the gap with \0 (null b
     >  (Null bytes + "Hi")
 
 
+
+[Go To Top](#content)
+
+---
+
+# Sets
+A Set is an unordered collection of unique strings.
+> Duplicate values are not allowed.
+
+[Visit the official docs of redis to understand all of the available commands related to String](https://redis.io/docs/latest/commands/?group=set)
+
+
+## Basic Commands
+
+#### 1. Add members
+```bash
+SADD fruits "apple" "banana" "orange"
+```
+>Output: `3` (number of elements added)
+
+#### 2. View members
+```bash
+SMEMBERS fruits
+```
+>Output: `["apple", "banana", "orange"]`\
+>(Order may vary since sets are unordered)
+#### 3. Check if element exists
+```bash
+SISMEMBER fruits "banana"
+```
+>Output: `1` (true)
+```bash
+SISMEMBER fruits "grape"
+```
+>Output: `0` (false)
+#### 4. Remove members
+```bash
+SREM fruits "orange"
+SMEMBERS fruits
+```
+>Output: `["apple", "banana"]`
+
+#### 5. Get random member(s)
+```bash
+SRANDMEMBER fruits 2
+```
+> Output: `["banana", "apple"]` (random each time)
+#### 6. Pop random member
+```bash
+SPOP fruits
+```
+> Removes and returns a random element.
+
+## Set Operations (Math Style)
+#### 1. Union (combine sets)
+```bash
+SADD set1 "a" "b" "c"
+SADD set2 "b" "c" "d"
+SUNION set1 set2
+```
+> Output: `["a", "b", "c", "d"]`
+#### 2. Intersection (common members)
+```bash
+SINTER set1 set2
+```
+> Output: `["b", "c"]`
+
+#### 3. Difference (elements in one set but not in other)
+```bash
+SDIFF set1 set2
+```
+> Output: `["a"]`
+
+
+[Go To Top](#content)
+
+---
+
+# List
+
+- A List is an ordered collection of strings.
+- You can add elements at the head (left) or at the tail (right).
+- You can access elements by their index (like arrays).
+- Lists allow duplicates.
+> Internally, Redis uses a linked list-like structure, so pushing/popping from ends is very fast.
+
+
+[Visit the official docs of redis to understand all of the available commands related to String](https://redis.io/docs/latest/commands/?group=list)
+
+## Basic Commands
+#### 1. Add elements
+```bash
+LPUSH tasks "task1" "task2"   # Add to the left
+RPUSH tasks "task3" "task4"   # Add to the right
+```
+> List: `[task2, task1, task3, task4]`
+#### 2. View elements
+```bash
+LRANGE tasks 0 -1
+```
+> Output: `["task2", "task1", "task3", "task4"]`\
+>(0 -1 means from first to last)
+
+#### 3. Pop elements
+```bash
+LPOP tasks   # Removes from left → "task2"
+RPOP tasks   # Removes from right → "task4"
+```
+#### 4. Get element by index
+```bash
+LINDEX tasks 1
+```
+> Output: `"task1"` (2nd element, since index starts at 0)
+#### 5. List length
+```bash
+LLEN tasks
+```
+> Output: `2` (if 2 elements left)
+#### 6. Trim list
+```bash
+LTRIM tasks 0 1
+```
+> Keeps only elements between index `0` and `1`, deletes the rest.
+
+
+[Go To Top](#content)
+
+---
+# Blocking Queue
+Lists can be used as queues with blocking operations:
+
+Normally, with a queue (using `LPOP`/`RPOP`), if the list is empty, you just get nil back.
+
+But sometimes you want the worker to wait until a new item arrives.\
+That’s where blocking commands come in:
+
+- `BLPOP` → Block until an element is available from the left.
+- `BRPOP` → Block until an element is available from the right.
+
+### Syntax
+```bash
+BLPOP key timeout
+BRPOP key timeout
+```
+- **key** → the queue (list) name.
+- **timeout** → how long to wait (in seconds). Use `0` for infinite wait.
+### Example
+Producer adds jobs:
+```bash
+RPUSH jobQueue "email:1"
+RPUSH jobQueue "email:2"
+```
+Worker waits for jobs
+
+```bash
+BLPOP jobQueue 0
+```
+Output:
+
+```arduino
+1) "jobQueue"
+2) "email:1"
+```
+Now the worker processes "email:1".\
+If the list becomes empty, Redis keeps waiting until another producer pushes something.
+
+### Multiple Queues
+You can block on multiple queues:
+```bash
+BLPOP queue1 queue2 0
+```
+It returns as soon as any of those queues gets a value.
+### Why it’s Useful
+- **No polling** → Workers don’t keep checking if the queue has data.
+- **Efficient** → Saves CPU cycles.
+- **Scalable** → Multiple workers can share the same queue
+
+[Go To Top](#content)
+
+---
+# Hashes
+- A Hash is a map/dictionary of fields and values, stored under one key.
+- Very useful for storing structured data (like a user profile, product details, etc.).
+> Think of it like a JSON object or a Python dict.
+
+**Format:**
+```yaml
+key → { field1: value1, field2: value2, ... }
+```
+[Visit the official docs of redis to understand all of the available commands related to String](https://redis.io/docs/latest/commands/?group=hash)
+
+
+## Basic Commands
+#### 1. Set a field
+```bash
+HSET user:1 name "Alice" age "22" city "Pune"
+```
+#### 2. Update / Add new field
+```bash
+HSET user:1 email "alice@example.com"
+```
+#### 3. Get a field
+```bash
+HGET user:1 name
+```
+> Output: `"Alice"`
+#### 4. Get all fields
+```bash
+HGETALL user:1
+```
+Output:
+```arduino
+1) "name" 
+2) "Alice" 
+3) "age" 
+4) "22" 
+5) "city" 
+6) "Pune"
+```
+#### 5. Get multiple fields
+```bash
+HMGET user:1 name city
+```
+> Output: `"Alice"` `"Pune"`
+#### 6. Delete a field
+```bash
+HDEL user:1 age
+```
+#### 7. Check if a field exists
+```bash
+HEXISTS user:1 city
+```
+> Output: `1` (true)
+#### 8. Increment field (if numeric)
+```bash
+HINCRBY user:1 age 1
+```
+> `age` becomes `23`
+#### 9. Get all fields names or values
+```bash
+HKEYS user:1   # ["name", "city", "email"]
+HVALS user:1   # ["Alice", "Pune", "alice@example.com"]
+```
 
 [Go To Top](#content)
 
