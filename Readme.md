@@ -1,6 +1,6 @@
 # Content
 1. [Introduction](#introduction)
-
+2. [String or Numbers](#string-or-numbers   )
 
 
 ---
@@ -120,6 +120,139 @@ It makes long keys easier to organize and read.
     - Example: `session:abcd1234` instead of `s:1`.
 5. **Be consistent**
     - Choose one pattern and stick with it across your project.
+
+> This naming convention are not compulsory, and redis server will not crash if you don't follow them. They are just standard way to name the data in redis 
+
+
+[Go To Top](#content)
+
+---
+# String or Numbers
+Strings are just binary-safe values stored under a key.
+
+Think of them as `"key" → "value"` pairs, just like a dictionary in Python or object in JavaScript.
+
+> in redis number are stores as a string as well
+
+
+<a href="https://redis.io/docs/latest/commands/?group=string" target="blank">Visit the official docs of redis to understand the all of the commands related to String<a/>
+
+### Common String Commands
+
+#### 1. SET & GET
+```bash
+SET user:1 "Yadnesh"
+GET user:1
+```
+>Output: `"Yadnesh"`
+#### 2. Update / Overwrite
+```bash
+SET user:1 "Ravi"
+```
+#### 3. Increment / Decrement (if value is a number)
+```bash
+SET counter 10
+INCR counter     # counter = 11
+DECR counter     # counter = 10
+INCRBY counter 5 # counter = 15
+DECRBY counter 5 # counter = 10
+```
+#### 4. Check if key exists
+```bash
+EXISTS user:1
+```
+#### 5. Expire (auto-delete key after time)
+```bash
+SET otp "123456"
+EXPIRE otp 60   # Key will be deleted after 60 seconds
+```
+#### 6. Append
+```bash
+APPEND message "Hello"
+APPEND message " World"
+GET message
+```
+>Output: `"Hello World"`
+#### 7. MSET / MGET (multiple values)
+```bash
+MSET name "Alice" age "21" city "Pune"
+MGET name age city
+```
+>Output: `"Alice" "21" "Pune"`
+
+#### 8. GETRANGE 
+`GETRANGE` in Redis is used to extract a substring (or slice of bytes) from a stored string.
+
+Syntax:
+```bash
+GETRANGE key start end
+```
+- **key** → the string key.
+- **start** → starting index (0-based).
+- **end** → ending index (inclusive).
+> Indexing works like arrays in programming.
+
+
+Example
+```bash
+SET message "Hello World"
+GETRANGE message 0 4
+```
+>Output: `"Hello"` (characters 0 → 4)
+
+
+Special Cases:
+1. If you use -1, it means “last character”.
+    ```bash
+    GETRANGE message 0 -1
+    ```
+    >Output: `"Hello World"` (full string)
+
+2. If the range goes beyond the string length, it just returns what’s available.
+    ```bash
+    GETRANGE message 0 50
+    ```
+    >Output: `"Hello World"`
+
+3. If the key does not exist → returns an empty string.
+
+#### 9. SETRANGE
+If `GETRANGE` is for reading part of a string, then `SETRANGE` is for overwriting part of a string.
+
+Syntax:
+```bash
+SETRANGE key offset value
+```
+- **key** → the string key.
+- **offset** → the position (0-based index) where you want to start writing.
+- **value** → the new substring to write.
+
+Example:
+```bash
+SET message "Hello World"
+SETRANGE message 6 "Redis"
+GET message
+```
+>Output: **"Hello Redis"**
+
+Special Cases
+1. Overwrite in middle
+
+    ```bash
+    SET name "Yadnesh"
+    SETRANGE name 0 "R"
+    GET name
+    ```
+    > Output: `"Radnesh"`
+2. Offset beyond current string length\
+If the offset is bigger than the string size, Redis pads the gap with \0 (null bytes).
+    ```bash
+    SETRANGE newKey 5 "Hi"
+    GET newKey
+    ```
+    >Output: "\u0000\u0000\u0000\u0000\u0000Hi"\
+    >  (Null bytes + "Hi")
+
 
 
 [Go To Top](#content)
