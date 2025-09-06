@@ -135,7 +135,7 @@ Think of them as `"key" → "value"` pairs, just like a dictionary in Python or 
 > in redis number are stores as a string as well
 
 
-<a href="https://redis.io/docs/latest/commands/?group=string" target="blank">Visit the official docs of redis to understand the all of the commands related to String<a/>
+<a href="https://redis.io/docs/latest/commands/?group=string" target="_blank">Visit the official docs of redis to understand the all of the commands related to String<a/>
 
 ### Common String Commands
 
