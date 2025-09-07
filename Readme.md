@@ -505,3 +505,116 @@ HVALS user:1   # ["Alice", "Pune", "alice@example.com"]
 [Go To Top](#content)
 
 ---
+# Redis Client
+A Redis client is simply the software (library or tool) that allows your application to talk to a Redis server.
+
+Redis itself is a server (in-memory key-value database). To use it in your application (Java, Python, Node.js, etc.), you need a client that understands the Redis communication protocol and sends commands like `SET`, `GET`, `DEL`, etc.
+
+## How to Set Up Redis Client For Express Application?
+### Step 1: install redis for node application
+```bash
+npm i redis
+```
+#### Step 2: import the `createClient` from `redis` library
+```js
+import { createClient } from "redis";
+```
+#### Step 3: Create the redis client
+```js
+const client = createClient({
+    username: process.env.REDIS_USERNAME,
+    password: process.env.REDIS_PASSWORD,
+    socket: {
+        host: process.env.REDIS_HOST,
+        port: Number(process.env.REDIS_PORT),
+    },
+});
+```
+Here:
+- `username` → Redis username (only needed if your Redis has ACL enabled).
+- `password` → for authentication.
+- `socket.host` → where Redis server runs (usually `127.0.0.1` or cloud host).
+- `socket.port` → Redis port (default is `6379` but can be change for cloud host).
+
+ Note: `process.env.REDIS_PORT` will be a string by default. Some Redis clients auto-handle it, but often it's safer to use:
+```js
+ port: Number(process.env.REDIS_PORT)
+```
+
+> all of this env variable is available at the redis dashboard
+#### Step 4: Handle errors
+
+```js
+client.on("error", (err) => console.log("Redis Client Error", err));
+```
+If something goes wrong (wrong password, server down, etc.), this will log the error.
+#### Step 5: Connect if not already open
+```js
+if (!client.isOpen) {
+    await client.connect();
+}
+```
+- `client.isOpen` → boolean that tells if the client is connected.
+- If not connected, `client.connect()` establishes the connection.
+#### Step 6: Export the client
+```js
+export default client;
+```
+This lets you reuse the `client` in other files
+
+### Complete Code
+```js
+import { createClient } from "redis"; // Import function to create a Redis client
+import dotenv from "dotenv";          // Import dotenv for environment variables
+dotenv.config({ path: "./.env" });    // Load variables from .env file into process.env
+
+const client = createClient({
+    username: process.env.REDIS_USERNAME,       // Redis username (if ACL enabled)
+    password: process.env.REDIS_PASSWORD,       // Redis password for authentication
+    socket: {
+        host: process.env.REDIS_HOST,           // Redis server hostname / IP
+        port: Number(process.env.REDIS_PORT),   // Redis server port (convert string -> number)
+    },
+});
+
+client.on("error", (err) => console.log("Redis Client Error", err)); // Log connection errors
+
+if (!client.isOpen) {        // Check if client is not already connected
+    await client.connect();  // Connect to Redis server
+}
+
+export default client; // Export client to use in other files
+```
+
+## Redis Client Syntax by Data Type
+
+| **Data Type**         | **Command** | **Example Syntax**                                               | **Result**                        |
+| --------------------- | ----------- | ---------------------------------------------------------------- | --------------------------------- |
+| **String**            | `SET`       | `await client.set("name", "Alice");`                             | Stores `"Alice"` under key `name` |
+|                       | `GET`       | `await client.get("name");`                                      | `"Alice"`                         |
+|                       | `INCR`      | `await client.incr("count");`                                    | Increments integer value          |
+|                       | `DECR`      | `await client.decr("count");`                                    | Decrements integer value          |
+| **Hash**              | `HSET`      | `await client.hSet("user:1", { name: "Alice", age: "25" });`     | Creates hash with fields          |
+|                       | `HGET`      | `await client.hGet("user:1", "age");`                            | `"25"`                            |
+|                       | `HGETALL`   | `await client.hGetAll("user:1");`                                | `{ name: "Alice", age: "25" }`    |
+| **List**              | `LPUSH`     | `await client.lPush("fruits", "apple");`                         | Adds `"apple"` to left            |
+|                       | `RPUSH`     | `await client.rPush("fruits", "banana");`                        | Adds `"banana"` to right          |
+|                       | `LPOP`      | `await client.lPop("fruits");`                                   | Removes first element             |
+|                       | `RPOP`      | `await client.rPop("fruits");`                                   | Removes last element              |
+|                       | `LRANGE`    | `await client.lRange("fruits", 0, -1);`                          | Returns list elements             |
+| **Set**               | `SADD`      | `await client.sAdd("colors", "red", "green");`                   | Adds unique values                |
+|                       | `SMEMBERS`  | `await client.sMembers("colors");`                               | `[ "red", "green" ]`              |
+|                       | `SISMEMBER` | `await client.sIsMember("colors", "red");`                       | `true` or `false`                 |
+| **Sorted Set (ZSet)** | `ZADD`      | `await client.zAdd("scores", [{ score: 100, value: "Alice" }]);` | Adds member with score            |
+|                       | `ZRANGE`    | `await client.zRange("scores", 0, -1, { WITHSCORES: true });`    | Sorted list by score              |
+|                       | `ZREVRANGE` | `await client.zRevRange("scores", 0, 0, { WITHSCORES: true });`  | Highest score entry               |
+| **Keys (General)**    | `EXISTS`    | `await client.exists("name");`                                   | `1` (true) or `0` (false)         |
+|                       | `DEL`       | `await client.del("name");`                                      | Deletes the key                   |
+|                       | `EXPIRE`    | `await client.expire("user:1", 60);`                             | Key expires in 60s                |
+|                       | `KEYS`      | `await client.keys("*");`                                        | Returns all keys                  |
+
+
+
+[Go To Top](#content)
+
+---
