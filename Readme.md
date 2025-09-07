@@ -2,7 +2,13 @@
 1. [Introduction](#introduction)
 2. [String or Numbers](#string-or-numbers   )
 3. [Sets](#sets)
-4. [Blocking Queue](#blocking-queue)
+4. [List](#list)
+5. [Blocking Queue](#blocking-queue)
+6. [Hashes](#hashes)
+7. [Sorted Set](#sorted-set)
+8. [Options in Redis Command](#options-in-redis-command)
+9. [Redis Client](#redis-client)
+
 
 ---
 
@@ -505,6 +511,120 @@ HVALS user:1   # ["Alice", "Pune", "alice@example.com"]
 [Go To Top](#content)
 
 ---
+# Sorted Set
+In Sorted Set (ZSETs)
+- Elements are unique (no duplicates).
+- Each element has a score (a number).
+- Redis automatically keeps the elements sorted by this score.
+Think of it like:
+
+```sql
+member → score
+"Player1" → 100
+"Player2" → 250
+"Player3" → 150
+```
+
+## Basics Command
+#### 1. Add members with score
+```bash
+ZADD leaderboard 100 "Player1" 250 "Player2" 150 "Player3"
+```
+#### 2. Get all members sorted by score
+```bash
+ZRANGE leaderboard 0 -1 WITHSCORES
+```
+Output:
+```arduino
+1) "Player1"
+2) "100"
+3) "Player3"
+4) "150"
+5) "Player2"
+6) "250"
+```
+Sorted by score ascending.
+#### 3. Get members in descending order
+```bash
+ZREVRANGE leaderboard 0 -1 WITHSCORES
+```
+Highest score first (common for leaderboards).
+#### 4. Get member’s score
+
+```bash
+ZSCORE leaderboard "Player3"
+```
+ Output: 150
+
+#### 5. Increment member score
+
+```bash
+ZINCRBY leaderboard 50 "Player1"
+```
+Player1’s score becomes 150
+
+#### 6. Get rank of a member
+```bash
+ZRANK leaderboard "Player1"       # ascending rank (0 = lowest score)
+ZREVRANK leaderboard "Player1"    # descending rank (0 = highest score)
+```
+
+#### 7. Count members in score range
+
+```bash
+ZCOUNT leaderboard 100 200
+```
+Returns number of members with scores between 100 and 200
+
+#### 8. Remove a member
+
+```bash
+ZREM leaderboard "Player2"
+```
+
+
+
+[Go To Top](#content)
+
+---
+
+# Options in Redis Command
+In Redis, an option means an extra flag or argument you can pass to a command to change its behavior.
+
+### Example
+- without Options:
+    ```bash
+    SET mykey "Hello"
+    ```
+    - Always sets `"Hello`" into `mykey`.
+    - If `mykey` already had a value, it gets overwritten.
+- with an option
+    ```bash
+    SET mykey "Hello" NX
+    ```
+    - `NX` = option that modifies the command behavior → “only set if the key does not exist”.
+
+### Complete List Of Options
+
+| Option              | Meaning                                                     | Used In (Commands) | Behavior                                  |
+| ------------------- | ----------------------------------------------------------- | ------------------ | ----------------------------------------- |
+| **NX**              | Only set/add if the key or member **does not exist**        | `SET`, `ZADD`      | Prevents overwriting existing data.       |
+| **XX**              | Only set/add if the key or member **already exists**        | `SET`, `ZADD`      | Ignores if key/member is new.             |
+| **CH**              | Return count of elements **changed** (added or updated)     | `ZADD`             | Without `CH`, only counts new elements.   |
+| **GT**              | Update score **only if new score is greater** than current  | `ZADD`             | Useful for leaderboards (keep max score). |
+| **LT**              | Update score **only if new score is less** than current     | `ZADD`             | Useful when tracking minimum values.      |
+| **EX seconds**      | Set expiration time in **seconds**                          | `SET`              | Key auto-deletes after given time.        |
+| **PX milliseconds** | Set expiration time in **milliseconds**                     | `SET`              | More fine-grained expiration.             |
+| **EXAT timestamp**  | Expire at an **exact UNIX timestamp (seconds)**             | `SET`              | Key expires at that moment.               |
+| **PXAT timestamp**  | Expire at an **exact UNIX timestamp (milliseconds)**        | `SET`              | High-precision expiry.                    |
+| **KEEPTTL**         | Keep existing TTL (do not reset expiry) when updating value | `SET`              | Prevents losing original expiration.      |
+
+
+[Go To Top](#content)
+
+---
+
+
 # Redis Client
 A Redis client is simply the software (library or tool) that allows your application to talk to a Redis server.
 
